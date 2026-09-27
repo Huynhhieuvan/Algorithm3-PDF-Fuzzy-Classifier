@@ -11,14 +11,25 @@ if ~exist(result_dir, 'dir'), mkdir(result_dir); end
 train_file = fullfile(data_dir, 'train.mat');
 test_file  = fullfile(data_dir, 'test.mat');
 
-if exist(train_file, 'file') && exist(test_file, 'file')
-    S1 = load(train_file); f1 = fields(S1); train = S1.(f1{1});
-    S2 = load(test_file);  f2 = fields(S2); test_data = S2.(f2{1});
-    data_all = [train; test_data];
-else
-    error(['Khong tim thay data/train.mat va data/test.mat. ', ...
-           'Hay giu nguyen cau truc thu muc cua repository.']);
+% Uu tien cau truc chuan data/train.mat, data/test.mat.
+% Neu nguoi dung vo tinh de hai file o thu muc goc, van co fallback de chay.
+if ~(exist(train_file, 'file') && exist(test_file, 'file'))
+    root_train = fullfile(repo_dir, 'train.mat');
+    root_test  = fullfile(repo_dir, 'test.mat');
+    if exist(root_train, 'file') && exist(root_test, 'file')
+        warning(['Dang dung train.mat/test.mat o thu muc goc. ', ...
+                 'Nen chuyen hai file vao thu muc data/.']);
+        train_file = root_train;
+        test_file  = root_test;
+    else
+        error(['Khong tim thay data/train.mat va data/test.mat. ', ...
+               'Hay giu nguyen cau truc thu muc cua repository.']);
+    end
 end
+
+S1 = load(train_file); f1 = fieldnames(S1); train = S1.(f1{1});
+S2 = load(test_file);  f2 = fieldnames(S2); test_data = S2.(f2{1});
+data_all = [train; test_data];
 
 X = double(data_all(:, 1:end-1));
 Y = data_all(:, end);

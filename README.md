@@ -1,99 +1,107 @@
-# Thuật toán 3 – phân loại PDF với hàm trạng thái / cơ chế giám sát
+# Algorithm 3 – PDF Fuzzy Classifier with activation-state monitoring
 
-Repository này đóng gói mã MATLAB dùng để tái lập thí nghiệm 10-fold của Thuật toán 3 và theo dõi biến kích hoạt `chi_t` của cơ chế bảo đảm tính giảm.
+MATLAB code used to reproduce the 10-fold experiment of Algorithm 3 and to monitor the activation variable `chi_t` associated with the descent safeguard.
 
-## 1. Cấu trúc
+## Repository structure
 
 ```text
-Thuattoan3_GitHub_Ready/
-├── K10_Fold_Thuattoan3_HamTrangThai.m   # mã chính đã tích hợp giám sát
-├── hamtrangthai.m                       # tính J_prev, J_candidate, DeltaJ_V, chi_t
-├── tuongtuchum.m                        # hệ số tương tự chùm
-├── run_Thuattoan3.m                     # file nên chạy
-├── verify_activation_zero.m             # kiểm tra số lần chi_t = 1
+Algorithm3-PDF-Fuzzy-Classifier/
+├── README.md
+├── MANIFEST.md
+├── run_Thuattoan3.m
+├── selfcheck_repository.m
+├── K10_Fold_Thuattoan3_HamTrangThai.m
+├── hamtrangthai.m
+├── tuongtuchum.m
+├── verify_activation_zero.m
 ├── data/
 │   ├── train.mat
 │   └── test.mat
 ├── original/
-│   └── K10_Fold_Thuattoan3_original.m   # mã gốc do NCS cung cấp
-└── results/                              # CSV sinh ra sau khi chạy
+│   └── K10_Fold_Thuattoan3_original.m
+└── results/
+    └── .gitkeep
 ```
 
-## 2. Yêu cầu MATLAB
+## MATLAB requirements
 
-- MATLAB có `cvpartition`, `confusionmat`, `perfcurve` (Statistics and Machine Learning Toolbox).
-- Không cần Optimization Toolbox cho bản **monitor** hiện tại.
+The experiment uses `cvpartition`, `confusionmat`, and `perfcurve` from MATLAB's Statistics and Machine Learning Toolbox.
 
-## 3. Cách chạy
+## How to run
 
-1. Clone/download toàn bộ repository.
-2. Mở MATLAB.
-3. Chạy:
+Open MATLAB, set the repository as the current folder, and run:
 
 ```matlab
 run_Thuattoan3
 ```
 
-File này đặt seed cố định `rng(20260927,'twister')` để phép chia 10-fold có thể tái lập.
+The entry script first runs `selfcheck_repository.m`, fixes the random seed with
 
-Sau đó chạy:
+```matlab
+rng(20260927,'twister')
+```
+
+and then runs the 10-fold experiment.
+
+After the experiment, run:
 
 ```matlab
 verify_activation_zero
 ```
 
-## 4. Các file kết quả
+## Objective and activation variable
 
-Sau khi chạy, thư mục `results/` có:
-
-- `KetQua_VNU_10Fold_HamTrangThai.csv`: ACC, độ lệch chuẩn ACC, Sensitivity, Specificity, AUC.
-- `HamTrangThai_Summary.csv`: số vòng lặp và số lần kích hoạt theo từng fold.
-- `HamTrangThai_Log.csv`: log từng vòng lặp (`J_PreviousV`, `J_CandidateV`, `DeltaJ_V`, `Chi_t`, `DeltaU`).
-
-## 5. Định nghĩa biến kích hoạt
-
-Với `U` cố định tại vòng lặp đang xét:
+For fixed `U`, the monitor computes
 
 ```text
-J_candidate = J(U, V_candidate)
-J_prev      = J(U, V_previous)
+J_candidate = J(U,V_candidate)
+J_prev      = J(U,V_previous)
 DeltaJ_V    = J_candidate - J_prev
 ```
 
-và
+with
 
 ```text
-chi_t = 0  nếu DeltaJ_V <= 1e-12
-chi_t = 1  nếu DeltaJ_V >  1e-12.
+J(U,V) = sum_i sum_j U(i,j)^2 [1-S(f_j,f_vi)]^2.
 ```
 
-Dung sai `1e-12` dùng để tránh kích hoạt giả do sai số dấu chấm động.
+The numerical monitor uses
 
-## 6. Bảo toàn kết quả của mã gốc
+```text
+chi_t = 0  if DeltaJ_V <= tolJ
+chi_t = 1  if DeltaJ_V >  tolJ,
+```
 
-Bản hiện tại là **monitor**: `hamtrangthai.m` chỉ đo và ghi nhận trạng thái; nó không thay đổi `v_candidate`, `W_candidate`, công thức cập nhật `U` hay phần dự báo. Vì vậy, với cùng một phân hoạch cross-validation, đường tính toán phân loại của bản monitor giữ nguyên như mã gốc.
+where `tolJ = 1e-12` prevents activation caused only by floating-point noise.
 
-Đặc biệt, nếu `chi_t = 0` tại mọi vòng lặp, cơ chế bảo đảm không cần can thiệp, đúng với trường hợp bảo toàn thuật toán ban đầu trong phần lý thuyết cập nhật.
+## Important scope of this repository
 
-Nếu xuất hiện `chi_t = 1`, bản monitor chỉ ghi log và vẫn giữ quỹ đạo gốc. Khi đó muốn thực thi đầy đủ nhánh lý thuyết cần cài đặt bộ giải cho bài toán
+This version is a **monitoring implementation**. `hamtrangthai.m` evaluates the safeguard condition and logs `chi_t`; it does not replace `V_candidate` when `chi_t=1`. Therefore the original numerical trajectory is preserved.
+
+If `chi_t=0` for every monitored iteration, the safeguard does not need to intervene, and the monitored implementation follows the original update trajectory (up to machine precision).
+
+If `chi_t=1` occurs, the code reports and logs it but does **not** claim to have solved the corrective subproblem
 
 ```text
 V^(t) in argmin_{V in C^k} J(U^(t),V).
 ```
 
-Không nên tuyên bố bản monitor đã thực hiện nhánh `argmin` khi `chi_t = 1`.
+A separate numerical optimizer would be required to implement that branch fully.
 
-## 7. Minh chứng khi bảo vệ
+## Output files
 
-Có thể trình bày trực tiếp:
+After running, `results/` contains:
 
-1. Git commit/tag của phiên bản đã dùng.
-2. `HamTrangThai_Summary.csv` để cho thấy số lần kích hoạt ở từng fold.
-3. `HamTrangThai_Log.csv` để kiểm tra từng vòng lặp.
-4. Mã `hamtrangthai.m` để đối chiếu định nghĩa `chi_t` với luận án.
+- `KetQua_VNU_10Fold_HamTrangThai.csv`
+- `HamTrangThai_Summary.csv`
+- `HamTrangThai_Log.csv`
 
-Nên tạo một GitHub Release (ví dụ `v1.0-defense`) và không sửa release đó sau khi đã dùng trong hồ sơ bảo vệ.
+The detailed log contains `Fold`, `Iter`, `J_PreviousV`, `J_CandidateV`, `DeltaJ_V`, `Chi_t`, and `DeltaU`.
 
-## 8. Dữ liệu
+## Reproducibility for the dissertation defense
 
-Hai file `data/train.mat` và `data/test.mat` được đóng gói để chạy lại mã. Trước khi công khai repository, NCS cần bảo đảm có quyền công bố/redistribute bộ dữ liệu hoặc các đặc trưng đã trích xuất. Nếu không, hãy bỏ hai file này khỏi repository công khai và ghi rõ nguồn/cách tạo dữ liệu.
+For a fixed public version used in the defense, create a GitHub tag/release such as `v1.0-defense`. Keep the generated CSV evidence in `results/` if redistribution is permitted.
+
+## Data note
+
+Before keeping `data/train.mat` and `data/test.mat` in a public repository, verify that redistribution is permitted. If not, remove the data files and provide a public source or reconstruction instructions instead.

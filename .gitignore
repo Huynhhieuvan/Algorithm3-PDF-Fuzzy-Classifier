@@ -9,6 +9,5 @@ codegen/
 Thumbs.db
 .vscode/
 
-# Generated experimental outputs
-results/*.csv
-!results/.gitkeep
+# Keep results/ under version control if you want to publish evidence CSVs.
+# Temporary result files may be added here later if needed.
