@@ -1,0 +1,2 @@
+Method,ACC_Avg,ACC_Std,Sensitivity,Specificity,AUC_Avg,AUC_Std
+Thuat toan 3 + ham trang thai (monitor),91.4,1.79195734076208,0.854,0.974,0.88605,0.0226277730037918
