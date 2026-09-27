@@ -105,3 +105,35 @@ For a fixed public version used in the defense, create a GitHub tag/release such
 ## Data note
 
 Before keeping `data/train.mat` and `data/test.mat` in a public repository, verify that redistribution is permitted. If not, remove the data files and provide a public source or reconstruction instructions instead.
+
+## Experimental verification of the safeguard mechanism
+
+The state/safeguard monitoring mechanism was evaluated using
+10-fold cross-validation.
+
+- Number of folds: 10
+- Iterations per fold: 6
+- Total iterations: 60
+- Comparable safeguard checks: 50
+- Total activations: 0
+- Activation rate: 0
+- Range of DeltaJ_V:
+  [-1.076107, -0.0006346]
+
+Thus, for this experiment,
+
+    J(U^(t), V_candidate^(t))
+    < J(U^(t), V^(t-1))
+
+at every comparable iteration.
+
+Therefore, the safeguard mechanism did not intervene in any fold,
+and the original candidate representative update was retained
+throughout the experiment.
+
+Classification results:
+
+- ACC: 91.40 ± 1.79 %
+- Sensitivity: 0.854
+- Specificity: 0.974
+- AUC: 0.8861 ± 0.0226
